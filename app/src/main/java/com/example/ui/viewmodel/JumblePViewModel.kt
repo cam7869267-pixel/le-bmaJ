@@ -5,7 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.api.GeminiClient
 import com.example.data.model.*
+import com.example.data.service.JamWakeWordService
 import com.example.data.tts.VoiceManager
+import com.example.data.wakeword.JamWakeWordEngine
+import com.example.data.wakeword.WakeDetectionStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +20,7 @@ class JumblePViewModel(application: Application) : AndroidViewModel(application)
 
     private val geminiClient = GeminiClient()
     val voiceManager = VoiceManager(application.applicationContext)
+    val wakeWordEngine = JamWakeWordEngine.getInstance(application.applicationContext)
 
     private val _currentMode = MutableStateFlow(AppMode.RESEARCH)
     val currentMode: StateFlow<AppMode> = _currentMode.asStateFlow()
@@ -35,6 +39,28 @@ class JumblePViewModel(application: Application) : AndroidViewModel(application)
 
     private val _isTabletHudVisible = MutableStateFlow(false)
     val isTabletHudVisible: StateFlow<Boolean> = _isTabletHudVisible.asStateFlow()
+
+    private val _isWakeWordSettingsVisible = MutableStateFlow(false)
+    val isWakeWordSettingsVisible: StateFlow<Boolean> = _isWakeWordSettingsVisible.asStateFlow()
+
+    private val _isWakeWordListeningEnabled = MutableStateFlow(true)
+    val isWakeWordListeningEnabled: StateFlow<Boolean> = _isWakeWordListeningEnabled.asStateFlow()
+
+    val isWakeWordServiceRunning: StateFlow<Boolean> = JamWakeWordService.isServiceRunning
+    val wakeWordAmplitude: StateFlow<Float> = wakeWordEngine.audioAmplitude
+    val wakeWordStatus: StateFlow<WakeDetectionStatus> = wakeWordEngine.detectionStatus
+    val lastDetectedWakeKeyword: StateFlow<String?> = wakeWordEngine.lastDetectedKeyword
+    val wakeWordDetectionCount: StateFlow<Int> = wakeWordEngine.detectionCount
+    val wakeWordSensitivity: StateFlow<Float> = wakeWordEngine.sensitivity
+
+    init {
+        // Setup in-app wake word listener
+        wakeWordEngine.setOnWakeWordListener { keyword ->
+            triggerWakeWordGreeting(keyword)
+        }
+        // Auto-start wake-word listening by default for hands-free AI interaction
+        wakeWordEngine.startListening()
+    }
 
     private val _activeTabletPlan = MutableStateFlow<ResearchPlan?>(null)
     val activeTabletPlan: StateFlow<ResearchPlan?> = _activeTabletPlan.asStateFlow()
@@ -404,8 +430,55 @@ class JumblePViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
+    fun setWakeWordSettingsVisible(visible: Boolean) {
+        _isWakeWordSettingsVisible.value = visible
+    }
+
+    fun toggleWakeWordListening(enabled: Boolean) {
+        _isWakeWordListeningEnabled.value = enabled
+        if (enabled) {
+            wakeWordEngine.startListening()
+        } else {
+            wakeWordEngine.stopListening()
+            if (isWakeWordServiceRunning.value) {
+                JamWakeWordService.stop(getApplication())
+            }
+        }
+    }
+
+    fun toggleBackgroundService(enabled: Boolean) {
+        val app = getApplication<Application>()
+        if (enabled) {
+            _isWakeWordListeningEnabled.value = true
+            JamWakeWordService.start(app)
+        } else {
+            JamWakeWordService.stop(app)
+        }
+    }
+
+    fun setWakeWordSensitivity(value: Float) {
+        wakeWordEngine.setSensitivity(value)
+    }
+
+    fun restartWakeWordEngine() {
+        if (_isWakeWordListeningEnabled.value) {
+            wakeWordEngine.stopListening()
+            wakeWordEngine.startListening()
+        }
+    }
+
+    fun triggerWakeWordGreeting(keyword: String = "Jam") {
+        _isJamOverlayVisible.value = true
+        voiceManager.speak("What's up! Heard $keyword. Jumble P is ready. What are we researching or building today?")
+    }
+
+    fun simulateWakeWordDetection(keyword: String = "Jam") {
+        wakeWordEngine.notifyWakeWordDetected(keyword)
+    }
+
     override fun onCleared() {
         super.onCleared()
         voiceManager.release()
+        wakeWordEngine.release()
     }
 }

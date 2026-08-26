@@ -34,10 +34,14 @@ import com.example.data.model.ThemeStyle
 fun TopHeaderBar(
     currentMode: AppMode,
     currentTheme: ThemeStyle,
+    isWakeWordListening: Boolean,
+    isWakeWordServiceRunning: Boolean,
+    wakeWordAmplitude: Float,
     onModeSelected: (AppMode) -> Unit,
     onJamClick: () -> Unit,
-    onThemeClick: () -> Unit,
     onVoiceClick: () -> Unit,
+    onWakeWordClick: () -> Unit,
+    onThemeClick: () -> Unit,
     onLongPressHeader: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -119,11 +123,57 @@ fun TopHeaderBar(
                 }
             }
 
-            // Quick Actions: JAM! Trigger, Theme, Voice
+            // Quick Actions: Wake Word, JAM! Trigger, Voice, Theme
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Wake Word 'Jam' Listening Pill / Badge
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (isWakeWordListening) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isWakeWordListening) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .clickable { onWakeWordClick() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isWakeWordListening) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                        )
+                        Icon(
+                            imageVector = if (isWakeWordServiceRunning) Icons.Default.Hearing else Icons.Default.GraphicEq,
+                            contentDescription = "Wake Word Settings",
+                            tint = if (isWakeWordListening) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = if (isWakeWordServiceRunning) "BG 'Jam'" else "'Jam'",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (isWakeWordListening) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 // Charismatic "JAM" trigger button
                 Button(
                     onClick = onJamClick,
@@ -132,7 +182,7 @@ fun TopHeaderBar(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier
                         .height(36.dp)
                         .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.primary)
@@ -140,13 +190,13 @@ fun TopHeaderBar(
                     Icon(
                         Icons.Default.Bolt,
                         contentDescription = "Trigger Jam Greeting",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(3.dp))
                     Text(
                         text = "JAM!",
                         fontWeight = FontWeight.Black,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         letterSpacing = 0.8.sp
                     )
                 }

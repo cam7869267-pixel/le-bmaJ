@@ -267,7 +267,7 @@ fun AppBuilderView(
             }
         }
 
-        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
         // Section 3: Android Jetpack Compose Code Generator
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

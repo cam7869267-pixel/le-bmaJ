@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -281,7 +282,7 @@ fun TabletResearchHud(
                 }
             }
 
-            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
             // Selectable Screenshot Previews for Testing
             Text(
@@ -319,7 +320,7 @@ fun TabletResearchHud(
                         ) {
                             Icon(
                                 imageVector = when (ss.category) {
-                                    "Academic Paper" -> Icons.Default.MenuBook
+                                    "Academic Paper" -> Icons.AutoMirrored.Filled.MenuBook
                                     "Video Capture" -> Icons.Default.PlayCircle
                                     "Technical Docs" -> Icons.Default.Description
                                     else -> Icons.Default.PhoneAndroid

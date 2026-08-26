@@ -91,10 +91,10 @@ fun ThemeCustomizerSheet(
                 }
             }
 
-            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
             // List of Themes
-            ThemeStyle.values().forEach { style ->
+            ThemeStyle.entries.forEach { style ->
                 val isSelected = style == currentTheme
                 val previewColors = when (style) {
                     ThemeStyle.OBSIDIAN_KIMI -> listOf(KimiBackground, KimiPrimary, KimiSecondary)

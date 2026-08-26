@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,7 +32,8 @@ fun JamGreetingOverlay(
     isVisible: Boolean,
     onDismiss: () -> Unit,
     onQuickAction: (String) -> Unit,
-    onVoiceClick: () -> Unit
+    onVoiceClick: () -> Unit,
+    onWakeWordSettingsClick: () -> Unit = {}
 ) {
     if (!isVisible) return
 
@@ -170,7 +172,7 @@ fun JamGreetingOverlay(
                         )
                     }
 
-                    Divider(
+                    HorizontalDivider(
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                         thickness = 0.8.dp
                     )
@@ -219,7 +221,7 @@ fun JamGreetingOverlay(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Icon(
-                                        Icons.Default.ArrowForward,
+                                        Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
@@ -251,6 +253,39 @@ fun JamGreetingOverlay(
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
+                    }
+
+                    // Wake Word Status & Settings link
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                onDismiss()
+                                onWakeWordSettingsClick()
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Hearing,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Wake Word: Say 'Jam' • Configure Listener",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.example.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -10,6 +11,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +34,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun JumblePApp(
-    viewModel: JumblePViewModel
+    viewModel: JumblePViewModel,
+    onRequestPermissions: () -> Unit = {}
 ) {
     val currentMode by viewModel.currentMode.collectAsStateWithLifecycle()
     val currentTheme by viewModel.currentTheme.collectAsStateWithLifecycle()
@@ -41,6 +45,16 @@ fun JumblePApp(
     val isThemeSheetVisible by viewModel.isThemeSheetVisible.collectAsStateWithLifecycle()
     val isVoiceSessionVisible by viewModel.isVoiceSessionVisible.collectAsStateWithLifecycle()
     val isTabletHudVisible by viewModel.isTabletHudVisible.collectAsStateWithLifecycle()
+    val isWakeWordSettingsVisible by viewModel.isWakeWordSettingsVisible.collectAsStateWithLifecycle()
+
+    val isWakeWordListeningEnabled by viewModel.isWakeWordListeningEnabled.collectAsStateWithLifecycle()
+    val isWakeWordServiceRunning by viewModel.isWakeWordServiceRunning.collectAsStateWithLifecycle()
+    val wakeWordAmplitude by viewModel.wakeWordAmplitude.collectAsStateWithLifecycle()
+    val wakeWordStatus by viewModel.wakeWordStatus.collectAsStateWithLifecycle()
+    val lastDetectedWakeKeyword by viewModel.lastDetectedWakeKeyword.collectAsStateWithLifecycle()
+    val wakeWordDetectionCount by viewModel.wakeWordDetectionCount.collectAsStateWithLifecycle()
+    val wakeWordSensitivity by viewModel.wakeWordSensitivity.collectAsStateWithLifecycle()
+
     val activeTabletPlan by viewModel.activeTabletPlan.collectAsStateWithLifecycle()
     val tabletScrollOffset by viewModel.tabletScrollOffset.collectAsStateWithLifecycle()
     val availableScreenshots by viewModel.availableScreenshots.collectAsStateWithLifecycle()
@@ -55,9 +69,27 @@ fun JumblePApp(
     val spokenText by viewModel.voiceManager.spokenText.collectAsStateWithLifecycle()
     val audioAmplitude by viewModel.voiceManager.audioAmplitude.collectAsStateWithLifecycle()
 
+    val focusManager = LocalFocusManager.current
     var inputText by remember { mutableStateOf("") }
     val chatListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Handle Predictive Back / Back gestures cleanly for all overlays
+    BackHandler(enabled = isThemeSheetVisible) {
+        viewModel.setThemeSheetVisible(false)
+    }
+    BackHandler(enabled = isVoiceSessionVisible) {
+        viewModel.setVoiceSessionVisible(false)
+    }
+    BackHandler(enabled = isJamOverlayVisible) {
+        viewModel.setJamOverlayVisible(false)
+    }
+    BackHandler(enabled = isTabletHudVisible) {
+        viewModel.setTabletHudVisible(false)
+    }
+    BackHandler(enabled = isWakeWordSettingsVisible) {
+        viewModel.setWakeWordSettingsVisible(false)
+    }
 
     val currentMessages = messagesMap[currentMode].orEmpty()
 
@@ -73,6 +105,9 @@ fun JumblePApp(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
+                        onTap = {
+                            focusManager.clearFocus()
+                        },
                         onLongPress = {
                             viewModel.setThemeSheetVisible(true)
                         }
@@ -83,13 +118,17 @@ fun JumblePApp(
                 TopHeaderBar(
                     currentMode = currentMode,
                     currentTheme = currentTheme,
+                    isWakeWordListening = isWakeWordListeningEnabled,
+                    isWakeWordServiceRunning = isWakeWordServiceRunning,
+                    wakeWordAmplitude = wakeWordAmplitude,
                     onModeSelected = { viewModel.switchMode(it) },
                     onJamClick = { viewModel.triggerJamGreeting() },
-                    onThemeClick = { viewModel.setThemeSheetVisible(true) },
                     onVoiceClick = {
                         viewModel.setVoiceSessionVisible(true)
                         viewModel.startVoiceInput()
                     },
+                    onWakeWordClick = { viewModel.setWakeWordSettingsVisible(true) },
+                    onThemeClick = { viewModel.setThemeSheetVisible(true) },
                     onLongPressHeader = { viewModel.setThemeSheetVisible(true) }
                 )
             },
@@ -248,7 +287,7 @@ fun JumblePApp(
                                     )
                                 } else {
                                     Icon(
-                                        Icons.Default.Send,
+                                        Icons.AutoMirrored.Filled.Send,
                                         contentDescription = "Send Message",
                                         tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary
                                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
@@ -376,7 +415,27 @@ fun JumblePApp(
                     onVoiceClick = {
                         viewModel.setVoiceSessionVisible(true)
                         viewModel.startVoiceInput()
+                    },
+                    onWakeWordSettingsClick = {
+                        viewModel.setWakeWordSettingsVisible(true)
                     }
+                )
+
+                WakeWordControlSheet(
+                    isVisible = isWakeWordSettingsVisible,
+                    isListening = isWakeWordListeningEnabled,
+                    isBackgroundServiceRunning = isWakeWordServiceRunning,
+                    wakeWordStatus = wakeWordStatus,
+                    audioAmplitude = wakeWordAmplitude,
+                    detectionCount = wakeWordDetectionCount,
+                    lastDetectedKeyword = lastDetectedWakeKeyword,
+                    sensitivity = wakeWordSensitivity,
+                    onToggleListening = { viewModel.toggleWakeWordListening(it) },
+                    onToggleBackgroundService = { viewModel.toggleBackgroundService(it) },
+                    onSensitivityChange = { viewModel.setWakeWordSensitivity(it) },
+                    onSimulateWakeWord = { viewModel.simulateWakeWordDetection("Jam") },
+                    onRequestPermissions = onRequestPermissions,
+                    onDismiss = { viewModel.setWakeWordSettingsVisible(false) }
                 )
 
                 ThemeCustomizerSheet(
